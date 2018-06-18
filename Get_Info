@@ -1,0 +1,16 @@
+import numpy as np
+import pandas as pd
+
+class Get_Info(object):
+    def basic_info(self,array):
+        cols = list(array)
+        for col in cols:
+            try:
+                print('Max of "+col+": "+np.amax(array[col]))
+                print('Min of "+col+": "+np.amin(array[col]))
+                print('Mean of "+col+": "+np.mean(array[col]))
+                print('Median of "+col+": "+np.median(array[col]))
+                print('Average of "+col+": "+np.average(array[col]))
+                print('STD of "+col+": "+np.std(array[col]))
+            except:
+              continue
