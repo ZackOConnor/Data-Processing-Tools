@@ -5,12 +5,10 @@ import pyodbc as db
 import datetime
 import time
 
-conn = db.connect('DSN=DataHouse;UID=PERIO\\zoconnor;PWD=Zack1325!')
-curs = conn.cursor()
-curs.execute("use Syspro")
-curs.execute("delete from Freight")
-curs.commit()
-curs.close()
+#Quick over view, the code will through excel files and pull out needed columns of information. 
+#The code can deal with changing column names and placment, empty rows, and messy headsers. 
+#It uses a dict to how possiable column names, a dict to hold the place of each col with in each file
+#Custom data cleaning process are layed out in comments
 
 class Carrier():
 
@@ -18,20 +16,20 @@ class Carrier():
         self.carrier_file_path = carrier_file_path
         self.carrier = self.carrier_file_path.split("\\")[(len(self.carrier_file_path.split("\\"))-1)]
         self.column_name_dict = {
-            "cus_name" : ["Name", "Consignee Name","Consignee","Customer Name","Customer","CONSIGNEE NAME","CONSIGNEE","CUSTOMER NAME","CUSTOMER", " Cons Name", "Cons Name", "CUSTOMER ", "Customer "],
-            "dis_center_state" : ["state","STATE","ST", "st", "State","Consignee State", "Cons State", " Cons State", " Cons St", "St"],
-            "ship_date" : ["Document Date" ,"Ship date", "Shipment Date", "SHIPDATE","Ship Date", "SHIP DATE", "PICKUPDATE", "Pick Up Date", "PICKUP", "Pick Up", "Pickup Date", "Actual Pickup Date", "SHIPDATE", "SHIP DATE ", "Pick Up ", " Pick Up", " Pickup Date", " Ship Date", "Pick up date "],
-            "pro#" : ["Assignment", "Bill Number", "Invoice Number", "PRONO","Pro Number", " Pro Number", "Pro #", "Pro#", "PRO#", "PRO #", "PRO Number", "OD Pro#", "Prono", "PRO", "PRO ", " Pro Nbr"],
-            "cost" : ["Balance Due" ,"Amount DC", "Amount Due"," Invoice Amt", "Gross Amount","Cost","Total", "Charges", "Cost ", "COST ", "COST", "Costs", "Total Cost", "Total Charge (Net)"],
-            "accessorials" : ["accessorials", "Accessorials", "Accessorial", "Acc.", "Accessorial Charge", " TTL Acc Chgs", "Acc Chgs", "TTL Acc Chgs"]
-        }
+            "" : [],
+            "" : [],
+            "" : [],
+            "" : [],
+            "" : [],
+            "" : []
+        } #Dict to hold the columns(Keys) and possiable names(Values which are Lists)  
 
     def import_files(self, excel_sheet):
         import_list = os.listdir(self.carrier_file_path)
         for file in import_list:
             if file.split(".")[len(file.split("."))-1] != "xlsx":
                 continue
-
+        
             try:
                 import_data = pd.read_excel(self.carrier_file_path + "\\" + file, sheet_name = excel_sheet)
             except:
@@ -42,78 +40,48 @@ class Carrier():
                        import_data = pd.read_excel(self.carrier_file_path + "\\" + file) 
                     except:
                         print("Incorrect Sheet Name: ", file)
+                        #These try excepts try and deal with changing sheet names
+                        
             import_dict = {
-                "cus_name" : "",
-                "dis_center_state" : "", 
-                "ship_date" : "",
-                "carrier" : self.carrier,
-                "pro#" : "",
-                "cost" : 0,
-                "accessorials" : 0
+                "" : "",
+                "" : "", 
+                "" : ""
+                #"pro#" : "", Example of a string col
+                #"cost" : 0, Example of a number col
             }
+            # create the dict to hold the cols you will need for the current file being worked on
+            
             import_data_list = list(import_data)
             for col in import_data_list: 
                 for item, value in self.column_name_dict.items():
                     if col in value:
                         import_dict[item] = col
+            #the logic above is what handles the changing col names and positions
+            
             row_counter = 1
             for index,row in import_data.iterrows():
-                if self.carrier == "NCS":
-                    if import_dict["accessorials"] != 0:
-                        sql_import_list = ["Walgreens","NA",row[import_dict["ship_date"]],import_dict["carrier"],row[import_dict["pro#"]],row[import_dict["cost"]],row[import_dict["accessorials"]]]
-                    else:
-                        sql_import_list = ["Walgreens","NA",row[import_dict["ship_date"]],import_dict["carrier"],row[import_dict["pro#"]],row[import_dict["cost"]],0]
+                sql_import_list = [row[import_dict[""]],row[import_dict[""]]]#build your sql import list
 
-                else:
-                    if import_dict["accessorials"] != 0:
-                        sql_import_list = [row[import_dict["cus_name"]],row[import_dict["dis_center_state"]],row[import_dict["ship_date"]],import_dict["carrier"],row[import_dict["pro#"]],row[import_dict["cost"]],row[import_dict["accessorials"]]]
-                    else:
-                        sql_import_list = [row[import_dict["cus_name"]],row[import_dict["dis_center_state"]],row[import_dict["ship_date"]],import_dict["carrier"],row[import_dict["pro#"]],row[import_dict["cost"]],0]
+                #if type(sql_import_list[2]) is not str:
+                    #try:
+                        #sql_import_list[2] = sql_import_list[2].strftime('%m/%d/%Y')
+                    #except:
+                        #pass
+                    #To deal with date times/time stamps you want as string formated as mm/dd/yy
 
-                if type(sql_import_list[2]) is not str:
-                    try:
-                        sql_import_list[2] = sql_import_list[2].strftime('%m/%d/%Y')
-                    except:
-                        pass
+                #if type(sql_import_list[4]) is str:
+                    #sql_import_list[4] = re.sub("[^0-9^.]", "", sql_import_list[4])
+                    #To strip all non numbers out of a col
 
-                if type(sql_import_list[4]) is str:
-                    sql_import_list[4] = re.sub("[^0-9^.]", "", sql_import_list[4])
-
-                conn = db.connect('DSN=DataHouse;UID=PERIO\\zoconnor;PWD=Zack1325!')
+                conn = db.connect('')#imput ODB connection
                 curs = conn.cursor()
-                curs.execute("use Syspro")
-
                 try:
-                    curs.execute("insert into Freight ( cus_name, dis_center_state, ship_date, carrier, pro#, cost, accessorials) values (?,?,?,?,?,?,?)", sql_import_list)
+                    curs.execute("insert into Freight ( ) values ()", sql_import_list)# Fill in your SQL statment
                 except:
-                    pass
-
+                    pass#Added to handle bad imput lines and repated pks
                 curs.commit()
                 curs.close()
                 row_counter = row_counter + 1
                 if row_counter > 2000:
-                    break 
-
-XPO_Logisctics = Carrier("C:\\Users\\zoconnor\\Desktop\\Freight Payment\\XPO Logistics")
-XPO_Logisctics.import_files("Orders")
-NCS = Carrier("C:\\Users\\zoconnor\\Desktop\\Freight Payment\\NCS")
-NCS.import_files("Orders")
-YRC_Frieght = Carrier("C:\\Users\\zoconnor\\Desktop\\Freight Payment\\YRC Freight")
-YRC_Frieght.import_files("Orders")
-UPS_Freight = Carrier("C:\\Users\\zoconnor\\Desktop\\Freight Payment\\UPS Freight")
-UPS_Freight.import_files("Orders")
-OldD = Carrier("C:\\Users\\zoconnor\\Desktop\\Freight Payment\\OldD")
-OldD.import_files("Orders")
-NEMF = Carrier("C:\\Users\\zoconnor\\Desktop\\Freight Payment\\NEMF")
-NEMF.import_files("Orders")
-Estes = Carrier("C:\\Users\\zoconnor\\Desktop\\Freight Payment\\Estes")
-Estes.import_files("Orders")
-FedEx = Carrier("C:\\Users\\zoconnor\\Desktop\\Freight Payment\\FedEx Freight")
-FedEx.import_files("Orders")
-
-conn = db.connect('DSN=DataHouse;UID=PERIO\\zoconnor;PWD=Zack1325!')
-curs = conn.cursor()
-curs.execute("use Syspro")
-curs.execute("delete from Freight where [pro#] < 1")
-curs.commit()
-curs.close()
+                    break #sometimes excel files will run until the row max row limit is reached, this stop the files after
+                    #a certine number of rows(2000) change as needed
